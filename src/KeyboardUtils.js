@@ -76,8 +76,14 @@ export async function listen(inputId, quitSupplier, eventListener) {
 
     while (!quitSupplier()) {
         let data = Buffer.alloc(24);
-        let c = fs.readSync(file, data, 0, 24, null);
-        if (c > 0) {
+        let bytesRead = await new Promise(resolve => {
+            fs.read(file, data, 0, 24, null, (err, bytesRead) => {
+                if (err) throw err;
+                resolve(bytesRead);
+            });
+        });
+
+        if (bytesRead > 0) {
             const event = {
                 time: {
                     tv_sec: data.readBigInt64LE(),

@@ -1,0 +1,32 @@
+<h1>Choose your keyboard</h1>
+
+<form action="javascript: void(0);" id="keyboard-form">
+    <select name="keyboard" id="keyboard-select" required>
+        <option value="" disabled selected>Select a keyboard...</option>
+    </select>
+    <button type="submit" disabled>Confirm</button>
+</form>
+
+<script>
+    const {ipcRenderer} = require('electron');
+    document.addEventListener('DOMContentLoaded', function () {
+        const select = document.getElementById('keyboard-select');
+        const form = document.getElementById('keyboard-form');
+        const button = form.querySelector('button');
+
+        ipcRenderer.on('keyboard_choice', (event, arg) => {
+            for (let keyboard of arg) {
+                const choice = document.createElement('option');
+                choice.innerText = keyboard;
+                choice.value = keyboard;
+                select.appendChild(choice);
+            }
+            button.disabled = false;
+        });
+        ipcRenderer.send('keyboard_choice', {type: 'request'});
+
+        form.addEventListener('submit', () => {
+            ipcRenderer.send('keyboard_choice', {type: 'input', input: select.value});
+        });
+    });
+</script>

@@ -1,29 +1,21 @@
 import * as child_process from "child_process";
 import * as util from 'util';
-import * as electron from 'electron';
+import {app} from "electron";
 
 const exec = util.promisify(child_process.exec);
 
-import chooseKeyboard from './ui/keyboard_choice.js';
+import KeyboardChoiceUI from './ui/KeyboardChoiceUI.js';
 import {detectKeyboard, listen} from './KeyboardUtils.js';
-import Config from "./Config.js";
+import Config from "./config/Config.js";
+import makeDefaultConfig from './config/defaultConfig';
 import Layout from './Layout.js';
 import InternalAction from "./InternalAction.js";
 import OBSController from "./obs/OBSController.js";
 import OBSAction from "./obs/OBSAction.js";
 
 
-// Check command line arguments
-if (process.argv.length <= 2) {
-    console.log('<script> <keyboard name>');
-    process.exit(1);
-}
+console.log('GMD start');
 
-// Load arguments
-let keyboardName = chooseKeyboard(process.argv[2]);
-
-// Config
-// todo
 
 // Internal actions
 let quit = false;
@@ -37,70 +29,22 @@ let quitAction = new InternalAction(() => {
     return true;
 });
 
-// OBS actions
+// OBS
 let obs = new OBSController('localhost:4444', 'oXCtkFxv37vozPlcNrZ6iXMQm4TD43UhaN4LSqHhVzYz2xQoMhsw7X6B8XEUeT7G');
 
-// Layout
-const config = new Config();
-config.map(82, 0);
-config.map(79, 1);
-config.map(80, 2);
-config.map(81, 3);
-config.map(75, 4);
-config.map(76, 5);
-config.map(77, 6);
-config.map(71, 7);
-config.map(72, 8);
-config.map(73, 9);
-config.map(98, '/');
-config.map(55, '*');
-config.map(74, '-');
-config.map(78, '+');
-config.map(14, 'backspace');
-config.map(96, 'enter');
-config.map(52, '.');
-config.map(111, '.');
-config.map(69, 'numlock');
-config.map(102, 'home');
-config.map(110, 0);
-config.map(107, 1);
-config.map(108, 2);
-config.map(109, 3);
-config.map(105, 4);
-config.map(106, 6);
-config.map(103, 8);
-config.map(104, 9);
-
-const rootLayout = new Layout('');
-config.browseLayout(rootLayout);
-const subLayouts = [];
-rootLayout.addAction('-', quitAction);
-
-// Obs layouts
-const obsLayouts = [];
-const kingdomTwoCrowns = new Layout('Kingdom Two Crowns');
-rootLayout.addAction(0, new InternalAction(() => config.browseLayout(kingdomTwoCrowns)));
-obsLayouts.push(kingdomTwoCrowns);
-
-kingdomTwoCrowns.addAction(0, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Layout'}));
-kingdomTwoCrowns.addAction(1, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Arisu/Syra'}));
-kingdomTwoCrowns.addAction(2, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Arisu'}));
-kingdomTwoCrowns.addAction(3, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Syra'}));
-
-for (let obsLayout of obsLayouts) {
-    obsLayout.addAction(7, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Start'}));
-    obsLayout.addAction(8, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Pause'}));
-    obsLayout.addAction(9, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'End'}));
-    subLayouts.push(obsLayout);
-}
-
-for (let subLayout of subLayouts) {
-    subLayout.addAction('backspace', new InternalAction(() => config.popLayout()));
-}
+// Config
+const config = makeDefaultConfig(quitAction, obs);
 
 
-(async function run() {
-    console.log('GMD start');
+async function run() {
+    let keyboardName;
+    try {
+        keyboardName = await (new KeyboardChoiceUI()).prompt(process.argv.length > 2 ? process.argv[2] : null);
+    } catch (e) {
+        console.error(e);
+    }
+    console.log('Chosen keyboard:', keyboardName);
+
 
     let keyboards = await detectKeyboard(keyboardName);
     if (keyboards.length === 0 || keyboards.consumer == null) {
@@ -149,5 +93,15 @@ for (let subLayout of subLayouts) {
     }
 
     console.log('GMD end');
-})()
-    .catch(console.error);
+}
+
+app.on('window-all-closed', e => e.preventDefault());
+
+app.on('ready', () => {
+    run().then(() => {
+        app.exit(0);
+    }).catch(err => {
+        console.error(err);
+        app.exit(1);
+    });
+});
