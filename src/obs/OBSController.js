@@ -70,7 +70,7 @@ export default class OBSController {
     async connect() {
         this.connecting = true;
         if (this.connected) {
-            throw 'Already connected';
+            throw new Error('Already connected');
         }
 
         return this.socket.connect({address: this.address, password: this.password});
@@ -83,7 +83,7 @@ export default class OBSController {
      */
     async send(action, data) {
         if (!this.isReady) {
-            throw 'Not connected';
+            throw new Error('Not connected');
         }
 
         return new Promise(async (resolve, reject) => {

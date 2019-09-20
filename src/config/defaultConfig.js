@@ -1,10 +1,14 @@
 import Config from "./Config";
-import Layout from "../Layout";
+import Layout from "./Layout";
 import InternalAction from "../InternalAction";
 import OBSAction from "../obs/OBSAction";
+import NavigateAction from "../NavigateAction";
+import NavigateBackAction from "../NavigateBackAction";
+import QuitAction from "../QuitAction";
+import ToggleOSDAction from "../ToggleOSDAction";
 
-export default function makeDefaultConfig(quitAction, obs) {
-    const config = new Config();
+export default function makeDefaultConfig(quitFunction, obs) {
+    const config = new Config(quitFunction, obs);
     config.map(82, 0);
     config.map(79, 1);
     config.map(80, 2);
@@ -35,30 +39,34 @@ export default function makeDefaultConfig(quitAction, obs) {
     config.map(104, 9);
 
     const rootLayout = new Layout('');
-    config.browseLayout(rootLayout);
+    config.addLayout(rootLayout);
+    config.navigateToLayout(rootLayout.name);
     const subLayouts = [];
-    rootLayout.addAction('-', quitAction);
+    rootLayout.addAction('-', new QuitAction(config));
+    rootLayout.addAction('+', new ToggleOSDAction(config));
 
     // Obs layouts
     const obsLayouts = [];
     const kingdomTwoCrowns = new Layout('Kingdom Two Crowns');
-    rootLayout.addAction(0, new InternalAction(() => config.browseLayout(kingdomTwoCrowns)));
+    rootLayout.addAction(0, new NavigateAction(config, kingdomTwoCrowns.name));
     obsLayouts.push(kingdomTwoCrowns);
 
-    kingdomTwoCrowns.addAction(0, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Layout'}));
-    kingdomTwoCrowns.addAction(1, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Arisu/Syra'}));
-    kingdomTwoCrowns.addAction(2, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Arisu'}));
-    kingdomTwoCrowns.addAction(3, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Syra'}));
+    kingdomTwoCrowns.addAction(0, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Layout'}));
+    kingdomTwoCrowns.addAction(1, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Arisu/Syra'}));
+    kingdomTwoCrowns.addAction(2, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Arisu'}));
+    kingdomTwoCrowns.addAction(3, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Syra'}));
 
-    for (let obsLayout of obsLayouts) {
-        obsLayout.addAction(7, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Start'}));
-        obsLayout.addAction(8, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'Pause'}));
-        obsLayout.addAction(9, new OBSAction(obs, 'SetCurrentScene', {'scene-name': 'End'}));
+    for (const obsLayout of obsLayouts) {
+        obsLayout.addAction(7, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Start'}));
+        obsLayout.addAction(8, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Pause'}));
+        obsLayout.addAction(9, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'End'}));
         subLayouts.push(obsLayout);
     }
 
-    for (let subLayout of subLayouts) {
-        subLayout.addAction('backspace', new InternalAction(() => config.popLayout()));
+    for (const subLayout of subLayouts) {
+        subLayout.addAction('+', new ToggleOSDAction(config));
+        subLayout.addAction('backspace', new NavigateBackAction(config));
+        config.addLayout(subLayout);
     }
 
     return config;

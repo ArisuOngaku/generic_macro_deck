@@ -3,9 +3,10 @@ import Action from "./Action.js";
 export default class InternalAction extends Action {
     callback;
 
-    constructor(callback) {
-        super();
-        if(typeof callback !== 'function') throw 'Parameter callback must be a function';
+    constructor(config, callback) {
+        super(config);
+        if (new.target === Action) throw new Error('Cannot instantiate InternalAction directly');
+        if (typeof callback !== 'function') throw new Error('Parameter callback must be a function');
         this.callback = callback;
     }
 

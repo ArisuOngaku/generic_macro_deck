@@ -1,39 +1,52 @@
 import * as child_process from "child_process";
 import * as util from 'util';
-import {app} from "electron";
+import {app, BrowserWindow, Menu, Tray} from "electron";
+import KeyboardChoiceUI from './ui/KeyboardChoiceUI.js';
+import {detectKeyboard, listen} from './KeyboardUtils.js';
+import {configDirectory} from "./config/Config.js";
+import makeDefaultConfig from './config/defaultConfig';
+import OBSController from "./obs/OBSController.js";
+import fs from "fs";
+import Config from "./config/Config";
+import QuitAction from "./QuitAction";
+import {registry} from "./Action";
+import NavigateBackAction from "./NavigateBackAction";
+import NavigateAction from "./NavigateAction";
+import OBSAction from "./obs/OBSAction";
+import ToggleOSDAction from "./ToggleOSDAction";
 
 const exec = util.promisify(child_process.exec);
 
-import KeyboardChoiceUI from './ui/KeyboardChoiceUI.js';
-import {detectKeyboard, listen} from './KeyboardUtils.js';
-import Config from "./config/Config.js";
-import makeDefaultConfig from './config/defaultConfig';
-import Layout from './Layout.js';
-import InternalAction from "./InternalAction.js";
-import OBSController from "./obs/OBSController.js";
-import OBSAction from "./obs/OBSAction.js";
-
 
 console.log('GMD start');
-
-
-// Internal actions
 let quit = false;
-let confirmQuit = false;
-let quitAction = new InternalAction(() => {
-    if (!confirmQuit) {
-        confirmQuit = true;
-    } else {
-        quit = true;
-    }
-    return true;
-});
+let tray = null;
+
+// Register action types
+registry.register(QuitAction);
+registry.register(NavigateBackAction);
+registry.register(NavigateAction);
+registry.register(ToggleOSDAction);
+registry.register(OBSAction);
 
 // OBS
 let obs = new OBSController('localhost:4444', 'oXCtkFxv37vozPlcNrZ6iXMQm4TD43UhaN4LSqHhVzYz2xQoMhsw7X6B8XEUeT7G');
 
 // Config
-const config = makeDefaultConfig(quitAction, obs);
+const configurations = [];
+let selectedConfiguration = 0;
+if (!fs.existsSync(configDirectory) && !fs.mkdirSync(configDirectory) || !fs.statSync(configDirectory).isDirectory()) {
+    throw new Error('Cannot create ' + configDirectory + ' directory');
+}
+for (const config of fs.readdirSync(configDirectory)) {
+    console.log('Loading config file ' + config);
+    configurations.push(new Config(() => quit = true, obs, JSON.parse(fs.readFileSync(configDirectory + '/' + config))));
+}
+if (configurations.length === 0) {
+    let config = makeDefaultConfig(() => quit = true, obs);
+    configurations.push(config);
+    fs.writeFileSync(configDirectory + '/default.json', JSON.stringify(config.serialize()));
+}
 
 
 async function run() {
@@ -66,10 +79,10 @@ async function run() {
         await listen(keyboards.consumer.eventId, () => quit, async event => {
             let keyCode = event.code;
             console.log('--------------------------------------------------------------------');
-            let key = config.getKey(keyCode);
+            let key = configurations[selectedConfiguration].getKey(keyCode);
             console.log('Key ', keyCode, '\tVirtual', key);
-            let action = config.getAction(key);
-            if (confirmQuit && action !== quitAction) confirmQuit = false;
+            let action = configurations[selectedConfiguration].getAction(key);
+            if (action == null || action.constructor === QuitAction) configurations[selectedConfiguration].resetQuit();
             if (action != null) {
                 console.log('Executing action of type', action.constructor.name);
                 try {
@@ -98,6 +111,24 @@ async function run() {
 app.on('window-all-closed', e => e.preventDefault());
 
 app.on('ready', () => {
+    tray = new Tray('resources/logo.png');
+    tray.setToolTip('Generic Macro Deck');
+    const menu = Menu.buildFromTemplate([
+        {label: 'Generic Macro Deck', type: 'normal', enabled: false},
+        {
+            label: 'Open GMD', type: 'normal', click: () => {
+                BrowserWindow.getAllWindows().forEach(w => w.show());
+            }
+        },
+        {type: 'separator'},
+        {label: 'Quit', type: 'normal', role: 'quit'},
+    ]);
+    tray.setContextMenu(menu);
+
+    tray.on('click', event => {
+        BrowserWindow.getAllWindows().forEach(w => w.isFocused() ? w.hide() : w.show());
+    });
+
     run().then(() => {
         app.exit(0);
     }).catch(err => {

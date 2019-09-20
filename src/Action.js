@@ -1,23 +1,44 @@
+import Config from './config/Config';
+
+export const registry = {
+    register: function (type) {
+        registry[type.name] = type.reviver;
+    }
+};
+
 export default class Action {
-    constructor() {
+    /**
+     * @type {Config}
+     */
+    config;
+
+    constructor(config) {
         if (new.target === Action) {
-            throw 'This class is abstract';
+            throw new Error('This class is abstract');
         }
+        if (config == null) throw new Error('config must not be null');
+        this.config = config;
     }
 
     async execute() {
         if (!(await this.canBeExecuted())) {
-            throw 'OBS Controller is not connected';
+            throw new Error('OBS Controller is not connected');
         }
 
         return this.run();
     }
 
     async canBeExecuted() {
-        throw 'Unimplemented';
+        throw new Error('Unimplemented');
     }
 
     async run() {
-        throw 'Unimplemented';
+        throw new Error('Unimplemented');
+    }
+
+    serialize() {
+        return {
+            type: this.constructor.name,
+        };
     }
 }

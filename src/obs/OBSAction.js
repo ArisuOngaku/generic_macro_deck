@@ -2,19 +2,15 @@ import Action from '../Action.js';
 import OBSController from "./OBSController.js";
 
 export default class OBSAction extends Action {
+    static reviver = (config, data) => new OBSAction(config, data.action, data.data);
+
     obsController;
     action;
     data;
 
-    /**
-     *
-     * @param obsController {OBSController}
-     * @param action
-     * @param data
-     */
-    constructor(obsController, action, data) {
-        super();
-        this.obsController = obsController;
+    constructor(config, action, data) {
+        super(config);
+        this.obsController = config.obsController;
         this.action = action;
         this.data = data;
     }
@@ -28,5 +24,12 @@ export default class OBSAction extends Action {
 
     async run() {
         return this.obsController.send(this.action, this.data);
+    }
+
+    serialize() {
+        let obj = super.serialize();
+        obj.action = this.action;
+        obj.data = this.data;
+        return obj;
     }
 }

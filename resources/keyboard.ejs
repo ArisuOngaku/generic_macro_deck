@@ -1,0 +1,12 @@
+[KEYBOARD]
+
+<script>
+    const {ipcRenderer} = require('electron');
+
+    document.addEventListener('DOMContentLoaded', function () {
+        ipcRenderer.on('config', (event, arg) => {
+            console.log(arg);
+        });
+        ipcRenderer.send('keyboard', {type: 'request'});
+    });
+</script>

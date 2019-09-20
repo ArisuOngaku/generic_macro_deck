@@ -68,8 +68,8 @@ const KEY_EVENT_TYPE = {
 };
 
 export async function listen(inputId, quitSupplier, eventListener) {
-    if (typeof quitSupplier !== 'function') throw 'quitSupplier must be a function';
-    if (typeof eventListener !== 'function') throw 'eventListener must be a function';
+    if (typeof quitSupplier !== 'function') throw new Error('quitSupplier must be a function');
+    if (typeof eventListener !== 'function') throw new Error('eventListener must be a function');
     console.log('Listening to input events from /dev/input/event' + inputId);
 
     let file = fs.openSync('/dev/input/event' + inputId, 'r');

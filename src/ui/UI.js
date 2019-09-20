@@ -13,24 +13,34 @@ export default class UI {
 
     constructor() {
         if (new.target === UI) {
-            throw 'Cannot instantiate UI directly';
+            throw new Error('Cannot instantiate UI directly');
         }
     }
 
     show() {
-        const title = this.title;
-        this.window = new BrowserWindow({
-            width: this.width,
-            height: this.height,
-            title: title,
-            webPreferences: {
-                nodeIntegration: true,
-            },
-            alwaysOnTop: true,
-            modal: true,
-            type: 'dialog'
-        });
-        // this.window.webContents.openDevTools();
+        if (this.window != null) {
+            this.window.show();
+        } else {
+            const title = this.title;
+            this.window = new BrowserWindow({
+                width: this.width,
+                height: this.height,
+                title: title,
+                webPreferences: {
+                    nodeIntegration: true,
+                },
+                alwaysOnTop: true,
+                modal: true,
+                type: 'dialog'
+            });
+            this.window.webContents.openDevTools({
+                mode: 'detach',
+            });
+        }
+    }
+
+    hide() {
+        this.window.hide();
     }
 
     close() {
@@ -38,16 +48,24 @@ export default class UI {
         this.window = null;
     }
 
+    toggle() {
+        if (this.window == null || !this.window.isFocused()) {
+            this.show();
+        } else {
+            this.hide();
+        }
+    }
+
     get title() {
-        throw 'Unimplemented';
+        throw new Error('Unimplemented');
     }
 
     get width() {
-        throw 'Unimplemented';
+        throw new Error('Unimplemented');
     }
 
     get height() {
-        throw 'Unimplemented';
+        throw new Error('Unimplemented');
     }
 
     async load(page) {
