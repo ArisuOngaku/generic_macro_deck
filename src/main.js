@@ -45,7 +45,7 @@ for (const config of fs.readdirSync(configDirectory)) {
 if (configurations.length === 0) {
     let config = makeDefaultConfig(() => quit = true, obs);
     configurations.push(config);
-    fs.writeFileSync(configDirectory + '/default.json', JSON.stringify(config.serialize()));
+    config.save();
 }
 
 
@@ -81,8 +81,9 @@ async function run() {
             console.log('--------------------------------------------------------------------');
             let key = configurations[selectedConfiguration].getKey(keyCode);
             console.log('Key ', keyCode, '\tVirtual', key);
+            configurations[selectedConfiguration].onKeyPress(key);
             let action = configurations[selectedConfiguration].getAction(key);
-            if (action == null || action.constructor === QuitAction) configurations[selectedConfiguration].resetQuit();
+            if (action == null || action.constructor !== QuitAction) configurations[selectedConfiguration].resetQuit();
             if (action != null) {
                 console.log('Executing action of type', action.constructor.name);
                 try {

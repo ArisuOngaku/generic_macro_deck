@@ -13,8 +13,10 @@ export default class KeyboardUI extends UI {
             ipcMain.on('keyboard', (event, arg) => {
                 if (arg.type === 'request') {
                     event.reply('config', this.config);
+                } else if (arg.type === 'reorder') {
+                    this.config.reorderKeys(arg.keys);
                 }
-            })
+            });
         }).catch(console.error);
     }
 
@@ -28,5 +30,29 @@ export default class KeyboardUI extends UI {
 
     get height() {
         return 640;
+    }
+
+    get decorated() {
+        return false;
+    }
+
+    toggle() {
+        if (this.window != null && this.window.isVisible()) {
+            this.hide();
+        } else {
+            this.show();
+        }
+    }
+
+    onKeyPress(key) {
+        if (this.window != null) {
+            this.window.webContents.send('key_press', key);
+        }
+    }
+
+    syncNavigation() {
+        if (this.window != null) {
+            this.window.webContents.send('navigation', this.config.navigation);
+        }
     }
 }

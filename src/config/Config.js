@@ -1,11 +1,14 @@
 import Layout from "./Layout";
 import KeyboardUI from "../ui/KeyboardUI";
+import fs from "fs";
 
 export const configDirectory = 'config';
 
 export default class Config {
     keyboardName = null;
     keyMap = {};
+    keys = [];
+    gridColumns = 4;
     /**
      * @type {Array<Layout>}
      */
@@ -24,11 +27,41 @@ export default class Config {
     }
 
     map(keyCode, key) {
-        this.keyMap[keyCode] = key;
+        let index = this.keys.indexOf(key);
+        if (index < 0) {
+            this.keys.push(key);
+            index = this.keys.length - 1;
+        }
+        this.keyMap[keyCode] = index;
+    }
+
+    reorderKeys(keys) {
+        if (!Array.isArray(keys) || this.keys.length !== keys.length) throw new Error('Tried to reorder keys with invalid set of keys');
+        let mapChanges = {};
+        for (let i = 0; i < keys.length; i++) {
+            if (this.keys[i] !== keys[i]) {
+                let oldIndex = this.keys.indexOf(keys[i]);
+                for (const keyCode of Object.keys(this.keyMap)) {
+                    if (this.keyMap[keyCode] === oldIndex) {
+                        mapChanges[keyCode] = i;
+                    }
+                }
+            }
+        }
+
+        for (const keyCode of Object.keys(mapChanges)) {
+            this.keyMap[keyCode] = mapChanges[keyCode];
+        }
+
+        console.log('Before:', this.keys);
+        console.log('After:', keys);
+
+        this.keys = keys;
+        this.save();
     }
 
     getKey(keyCode) {
-        return this.keyMap[keyCode];
+        return this.keys[this.keyMap[keyCode]];
     }
 
     getAction(key) {
@@ -53,6 +86,7 @@ export default class Config {
         if (index >= 0) {
             this.navigation.push(index);
             this.logNavigation();
+            this.keyboardUI.syncNavigation();
         } else {
             throw new Error('No layout found with the name ' + layoutName);
         }
@@ -61,6 +95,7 @@ export default class Config {
     popLayout() {
         this.navigation.pop();
         this.logNavigation();
+        this.keyboardUI.syncNavigation();
     }
 
     logNavigation() {
@@ -88,10 +123,20 @@ export default class Config {
         this.keyboardUI.toggle();
     }
 
+    onKeyPress(key) {
+        this.keyboardUI.onKeyPress(this.keys.indexOf(key));
+    }
+
+    save() {
+        fs.writeFileSync(configDirectory + '/' + this.keyboardName + '.json', JSON.stringify(this.serialize()));
+    }
+
     serialize() {
         return {
             keyboardName: this.keyboardName,
             keyMap: this.keyMap,
+            keys: this.keys,
+            gridColumns: this.gridColumns,
             layouts: this.layouts.map(layout => layout.serialize()),
             navigation: this.navigation,
         };
@@ -100,6 +145,8 @@ export default class Config {
     deserialize(data) {
         this.keyboardName = data.keyboardName;
         this.keyMap = data.keyMap;
+        this.keys = data.keys;
+        this.gridColumns = data.gridColumns;
         this.layouts = data.layouts.map(d => new Layout(null, this, d));
         this.navigation = data.navigation;
     }

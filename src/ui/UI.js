@@ -31,7 +31,11 @@ export default class UI {
                 },
                 alwaysOnTop: true,
                 modal: true,
-                type: 'dialog'
+                type: 'dialog',
+                autoHideMenuBar: true,
+                frame: this.decorated,
+                transparent: !this.decorated,
+                titleBarStyle: this.decorated ? 'default' : 'hidden'
             });
             this.window.webContents.openDevTools({
                 mode: 'detach',
@@ -68,6 +72,13 @@ export default class UI {
         throw new Error('Unimplemented');
     }
 
+    get decorated() {
+        return false;
+    }
+
+    onKeyPress(key) {
+    }
+
     async load(page) {
         const partial = rootPath + page + extension;
         return new Promise((resolve, reject) => {
@@ -84,7 +95,7 @@ export default class UI {
                         return;
                     }
 
-                    this.window.loadURL('data:text/html;charset=utf-8,' + encodeURI(finalRender));
+                    this.window.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(finalRender));
                     resolve();
                 });
             });
