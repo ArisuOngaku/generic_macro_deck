@@ -1,32 +1,106 @@
-<h1>Choose your keyboard</h1>
+<h1>Choose your macro deck</h1>
+<p>This works with any device that can act as a keyboard.</p>
+<p>Be aware that <strong>this device will be disabled</strong>. It will be re-enabled when the program exits (only if it
+    exits properly).</p>
+<p>While it is not the case every time, you can expect your desired keyboard to be at the bottom of this list.</p>
 
-<form action="javascript: void(0);" id="keyboard-form">
-    <select name="keyboard" id="keyboard-select" required>
-        <option value="" disabled selected>Select a keyboard...</option>
-    </select>
-    <button type="submit" disabled>Confirm</button>
-</form>
+<div id="keyboard-select"></div>
+<button type="submit" disabled>Confirm</button>
+
+<style>
+    html, body {
+        height: 100%;
+    }
+
+    body {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+    }
+
+    h1 {
+        margin: 24px;
+    }
+
+    p {
+        margin: 8px 24px;
+    }
+
+    #keyboard-select {
+        display: flex;
+        flex-direction: column;
+        margin: 8px 24px 0 24px;
+
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    #keyboard-select::-webkit-scrollbar, #keyboard-select::-webkit-scrollbar-thumb {
+        background-color: #0006;
+        width: 5px;
+    }
+
+    .keyboard-option {
+        position: relative;
+        text-align: left;
+        cursor: pointer;
+        margin: 2px;
+        padding: 8px 16px;
+        background-color: #0006;
+        border: 1px solid #000a;
+        border-radius: 2px;
+    }
+
+    .keyboard-option:hover, .keyboard-option.selected {
+        background-color: #0009;
+    }
+
+    .keyboard-option.selected::before {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        border-right: 4px solid var(--secondary);
+    }
+
+    button {
+        flex-shrink: 0;
+        margin: 24px;
+        align-self: center;
+    }
+</style>
 
 <script>
     const {ipcRenderer} = require('electron');
-    document.addEventListener('DOMContentLoaded', function () {
-        const select = document.getElementById('keyboard-select');
-        const form = document.getElementById('keyboard-form');
-        const button = form.querySelector('button');
 
-        ipcRenderer.on('keyboard_choice', (event, arg) => {
-            for (let keyboard of arg) {
-                const choice = document.createElement('option');
-                choice.innerText = keyboard;
-                choice.value = keyboard;
-                select.appendChild(choice);
-            }
-            button.disabled = false;
-        });
-        ipcRenderer.send('keyboard_choice', {type: 'request'});
+    const select = document.getElementById('keyboard-select');
+    const button = document.querySelector('button');
 
-        form.addEventListener('submit', () => {
-            ipcRenderer.send('keyboard_choice', {type: 'input', input: select.value});
-        });
+    let selectedKeyboard = null;
+
+    ipcRenderer.on('keyboard_choice', (event, arg) => {
+        console.log('Received keyboard list', arg);
+        for (let keyboard of arg) {
+            const choice = document.createElement('div');
+            choice.classList.add('keyboard-option');
+            choice.innerText = keyboard;
+            choice.addEventListener('click', function () {
+                select.childNodes.forEach(n => n.classList.remove('selected'));
+                choice.classList.add('selected');
+                selectedKeyboard = choice;
+                button.disabled = false;
+            });
+            select.appendChild(choice);
+        }
     });
+    ipcRenderer.send('keyboard_choice', {type: 'request'});
+
+    button.addEventListener('click', () => {
+        if (!button.disabled) {
+            ipcRenderer.send('keyboard_choice', {type: 'input', input: selectedKeyboard.innerText});
+        }
+    });
+
 </script>
