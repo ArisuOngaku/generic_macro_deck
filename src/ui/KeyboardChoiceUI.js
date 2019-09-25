@@ -12,6 +12,10 @@ export default class KeyboardChoiceUI extends UI {
 
         return new Promise((resolve, reject) => {
             this.show();
+            this.window.on('close', event => {
+                event.preventDefault();
+                this.hide();
+            });
 
             let listener;
             ipcMain.on('keyboard_choice', listener = (event, arg) => {
