@@ -1,6 +1,6 @@
 import * as util from 'util';
 import * as child_process from 'child_process';
-import * as fs from 'fs';
+import fs from 'fs';
 
 const exec = util.promisify(child_process.exec);
 

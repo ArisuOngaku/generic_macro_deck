@@ -1,8 +1,10 @@
 import Layout from "./Layout";
 import KeyboardUI from "../ui/KeyboardUI";
+import {homedir} from "os";
 import fs from "fs";
+import path from "path";
 
-export const configDirectory = 'config';
+export const configDirectory = path.resolve(homedir(), '.generic_macro_deck');
 
 export default class Config {
     keyboardName = null;
@@ -128,7 +130,7 @@ export default class Config {
     }
 
     save() {
-        fs.writeFileSync(configDirectory + '/' + this.keyboardName + '.json', JSON.stringify(this.serialize()));
+        fs.writeFileSync(path.resolve(configDirectory, this.keyboardName + '.json'), JSON.stringify(this.serialize()));
     }
 
     serialize() {

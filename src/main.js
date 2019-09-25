@@ -1,11 +1,11 @@
 import * as child_process from "child_process";
 import * as util from 'util';
 import {app, BrowserWindow, Menu, Tray} from "electron";
-import KeyboardChoiceUI from './ui/KeyboardChoiceUI.js';
-import {detectKeyboard, listen} from './KeyboardUtils.js';
-import {configDirectory} from "./config/Config.js";
+import KeyboardChoiceUI from './ui/KeyboardChoiceUI';
+import {detectKeyboard, listen} from './KeyboardUtils';
+import {configDirectory} from "./config/Config";
 import makeDefaultConfig from './config/defaultConfig';
-import OBSController from "./obs/OBSController.js";
+import OBSController from "./obs/OBSController";
 import fs from "fs";
 import Config from "./config/Config";
 import QuitAction from "./QuitAction";
@@ -14,6 +14,8 @@ import NavigateBackAction from "./NavigateBackAction";
 import NavigateAction from "./NavigateAction";
 import OBSAction from "./obs/OBSAction";
 import ToggleOSDAction from "./ToggleOSDAction";
+import path from "path";
+import {resourcesDirectory} from "./ui/UI";
 
 const exec = util.promisify(child_process.exec);
 
@@ -22,34 +24,55 @@ console.log('GMD start');
 let quit = false;
 let tray = null;
 
-// Register action types
-registry.register(QuitAction);
-registry.register(NavigateBackAction);
-registry.register(NavigateAction);
-registry.register(ToggleOSDAction);
-registry.register(OBSAction);
-
-// OBS
-let obs = new OBSController('localhost:4444', 'oXCtkFxv37vozPlcNrZ6iXMQm4TD43UhaN4LSqHhVzYz2xQoMhsw7X6B8XEUeT7G');
-
-// Config
-const configurations = [];
-let selectedConfiguration = 0;
-if (!fs.existsSync(configDirectory) && !fs.mkdirSync(configDirectory) || !fs.statSync(configDirectory).isDirectory()) {
-    throw new Error('Cannot create ' + configDirectory + ' directory');
-}
-for (const config of fs.readdirSync(configDirectory)) {
-    console.log('Loading config file ' + config);
-    configurations.push(new Config(() => quit = true, obs, JSON.parse(fs.readFileSync(configDirectory + '/' + config))));
-}
-if (configurations.length === 0) {
-    let config = makeDefaultConfig(() => quit = true, obs);
-    configurations.push(config);
-    config.save();
-}
-
 
 async function run() {
+    // System tray
+    tray = new Tray(path.resolve(resourcesDirectory, 'logo.png'));
+    tray.setToolTip('Generic Macro Deck');
+    const menu = Menu.buildFromTemplate([
+        {label: 'Generic Macro Deck', type: 'normal', enabled: false},
+        {
+            label: 'Open GMD', type: 'normal', click: () => {
+                BrowserWindow.getAllWindows().forEach(w => w.show());
+            }
+        },
+        {type: 'separator'},
+        {label: 'Quit', type: 'normal', role: 'quit'},
+    ]);
+    tray.setContextMenu(menu);
+
+    tray.on('click', event => {
+        BrowserWindow.getAllWindows().forEach(w => w.isFocused() ? w.hide() : w.show());
+    });
+
+    // Register action types
+    registry.register(QuitAction);
+    registry.register(NavigateBackAction);
+    registry.register(NavigateAction);
+    registry.register(ToggleOSDAction);
+    registry.register(OBSAction);
+
+    // OBS
+    let obs = new OBSController('localhost:4444', 'oXCtkFxv37vozPlcNrZ6iXMQm4TD43UhaN4LSqHhVzYz2xQoMhsw7X6B8XEUeT7G');
+
+    // Config
+    const configurations = [];
+    let selectedConfiguration = 0;
+    if (!fs.existsSync(configDirectory)) fs.mkdirSync(configDirectory);
+    if (!fs.statSync(configDirectory).isDirectory()) throw new Error('Cannot create ' + configDirectory + ' directory');
+
+    for (const config of fs.readdirSync(configDirectory)) {
+        console.log('Loading config file ' + config);
+        configurations.push(new Config(() => quit = true, obs, JSON.parse(fs.readFileSync(path.resolve(configDirectory, config)))));
+    }
+    if (configurations.length === 0) {
+        let config = makeDefaultConfig(() => quit = true, obs);
+        configurations.push(config);
+        config.save();
+    }
+
+
+    // Keyboard choice
     let keyboardName;
     try {
         keyboardName = await (new KeyboardChoiceUI()).prompt(process.argv.length > 2 ? process.argv[2] : null);
@@ -59,11 +82,13 @@ async function run() {
     console.log('Chosen keyboard:', keyboardName);
 
 
+    // Keyboard detection
     let keyboards = await detectKeyboard(keyboardName);
     if (keyboards.length === 0 || keyboards.consumer == null) {
         throw 'Cannot find keyboard ' + keyboardName;
     }
 
+    // Keyboard disabling
     console.log(keyboardName + ' matches with', keyboards.length, 'keyboards.');
     for (let keyboard of keyboards) {
         console.log('Disabling keyboard', keyboard.xinputId);
@@ -72,7 +97,6 @@ async function run() {
             throw disablerProcess.stderr;
         }
     }
-
     console.log('Keyboards successfully disabled.');
 
     try {
@@ -111,29 +135,12 @@ async function run() {
 
 app.on('window-all-closed', e => e.preventDefault());
 
-app.on('ready', () => {
-    tray = new Tray('resources/logo.png');
-    tray.setToolTip('Generic Macro Deck');
-    const menu = Menu.buildFromTemplate([
-        {label: 'Generic Macro Deck', type: 'normal', enabled: false},
-        {
-            label: 'Open GMD', type: 'normal', click: () => {
-                BrowserWindow.getAllWindows().forEach(w => w.show());
-            }
-        },
-        {type: 'separator'},
-        {label: 'Quit', type: 'normal', role: 'quit'},
-    ]);
-    tray.setContextMenu(menu);
-
-    tray.on('click', event => {
-        BrowserWindow.getAllWindows().forEach(w => w.isFocused() ? w.hide() : w.show());
-    });
-
-    run().then(() => {
+app.on('ready', async () => {
+    try {
+        await run();
         app.exit(0);
-    }).catch(err => {
-        console.error(err);
+    } catch (e) {
+        console.error(e);
         app.exit(1);
-    });
+    }
 });

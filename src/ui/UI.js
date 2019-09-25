@@ -1,7 +1,8 @@
 import {BrowserWindow} from "electron";
 import ejs from "ejs";
+import path from "path";
 
-const rootPath = './resources/';
+export const resourcesDirectory = path.resolve(__dirname, '../../resources');
 const defaultLayout = 'layout';
 const extension = '.ejs';
 
@@ -80,7 +81,7 @@ export default class UI {
     }
 
     async load(page) {
-        const partial = rootPath + page + extension;
+        const partial = path.resolve(resourcesDirectory, page + extension);
         return new Promise((resolve, reject) => {
             ejs.renderFile(partial, {}, {}, (err, renderedPartial) => {
                 if (err) {
@@ -88,7 +89,7 @@ export default class UI {
                     return;
                 }
 
-                const layout = rootPath + defaultLayout + extension;
+                const layout = path.resolve(resourcesDirectory, defaultLayout + extension);
                 ejs.renderFile(layout, {content: renderedPartial}, {}, (err, finalRender) => {
                     if (err) {
                         reject(err);

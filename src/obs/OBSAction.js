@@ -1,5 +1,4 @@
-import Action from '../Action.js';
-import OBSController from "./OBSController.js";
+import Action from '../Action';
 
 export default class OBSAction extends Action {
     static reviver = (config, data) => new OBSAction(config, data.action, data.data);

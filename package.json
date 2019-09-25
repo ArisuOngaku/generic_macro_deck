@@ -1,12 +1,13 @@
 {
-  "name": "keyboard_macro",
+  "name": "generic_macro_deck",
   "version": "1.0.0",
-  "description": "",
-  "main": "keyboard_macro.js",
+  "description": "Turn any keyboard into a macro board",
+  "main": "generic_macro_deck.js",
   "type": "module",
   "scripts": {
-    "start": "electron keyboard_macro.js",
-    "build": "electron-packager ./ gmd --out build --all",
+    "start": "electron generic_macro_deck.js",
+    "build": "electron-packager ./ --out build --all",
+    "build-arch": "electron-packager ./ --out build --arch=x64 --ignore='^/(.idea|build|.gitignore|build/PKGBUILD|config)'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Alice Gaudon",

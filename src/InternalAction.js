@@ -1,4 +1,4 @@
-import Action from "./Action.js";
+import Action from "./Action";
 
 export default class InternalAction extends Action {
     callback;
