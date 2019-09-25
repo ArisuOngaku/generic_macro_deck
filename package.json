@@ -1,17 +1,21 @@
 {
-  "name": "generic_macro_deck",
+  "name": "generic-macro-deck",
   "version": "1.0.0",
   "description": "Turn any keyboard into a macro board",
-  "main": "generic_macro_deck.js",
+  "author": {
+    "name": "Alice Gaudon",
+    "email": "alice@gaudon.pro"
+  },
+  "homepage": "https://gitlab.com/ArisuOngaku/genericmacrodeck",
+  "main": "generic-macro-deck.js",
   "type": "module",
   "scripts": {
-    "start": "electron generic_macro_deck.js",
+    "start": "electron generic-macro-deck.js",
     "build": "electron-builder",
     "build-arch": "electron-builder --linux dir",
     "pack": "electron-builder --dir",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Alice Gaudon",
   "license": "ISC",
   "dependencies": {
     "ejs": "^2.7.1",
@@ -23,6 +27,19 @@
     "electron-builder": "^21.2.0"
   },
   "build": {
-    "appId": "fr.arisu.generic_macro_deck"
+    "appId": "generic-macro-deck",
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "executableName": "generic-macro-deck",
+      "category": "Utility",
+      "desktop": {
+        "StartupWMClass": "GenericMacroDeck",
+        "MimeType": "x-scheme-handler/generic-macro-deck"
+      }
+    },
+    "electronDist": "/usr/lib/electron",
+    "electronVersion": "6.0.10"
   }
 }
