@@ -31,9 +31,11 @@ export default class UI {
         this.open();
 
         this.window.show();
-        this.window.webContents.openDevTools({
-            mode: 'detach',
-        });
+        if (process.argv.indexOf('--debug') >= 0) {
+            this.window.webContents.openDevTools({
+                mode: 'detach',
+            });
+        }
     }
 
     createWindow() {

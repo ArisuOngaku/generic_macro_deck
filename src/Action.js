@@ -1,4 +1,4 @@
-import Config from './config/Config';
+import Profile from './config/Profile';
 
 export const registry = {
     register: function (type) {
@@ -8,7 +8,7 @@ export const registry = {
 
 export default class Action {
     /**
-     * @type {Config}
+     * @type {Profile}
      */
     config;
 

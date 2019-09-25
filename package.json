@@ -11,6 +11,7 @@
   "type": "module",
   "scripts": {
     "start": "electron generic-macro-deck.js",
+    "start-debug": "electron generic-macro-deck.js --debug",
     "build": "electron-builder",
     "build-arch": "electron-builder --linux dir",
     "pack": "electron-builder --dir",

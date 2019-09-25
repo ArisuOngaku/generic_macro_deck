@@ -1,4 +1,4 @@
-import Config from "./Config";
+import Profile from "./Profile";
 import Layout from "./Layout";
 import InternalAction from "../InternalAction";
 import OBSAction from "../obs/OBSAction";
@@ -7,8 +7,8 @@ import NavigateBackAction from "../NavigateBackAction";
 import QuitAction from "../QuitAction";
 import ToggleOSDAction from "../ToggleOSDAction";
 
-export default function makeDefaultConfig(quitFunction, obs) {
-    const config = new Config(quitFunction, obs);
+export default function makeDefaultProfile(quitFunction, obs) {
+    const config = new Profile(quitFunction, obs, 'default');
     config.map(82, '0');
     config.map(79, '1');
     config.map(80, '2');
@@ -48,15 +48,21 @@ export default function makeDefaultConfig(quitFunction, obs) {
     // Obs layouts
     const obsLayouts = [];
     const kingdomTwoCrowns = new Layout('Kingdom Two Crowns');
-    rootLayout.addAction(0, new NavigateAction(config, kingdomTwoCrowns.name));
+    rootLayout.addAction(1, new NavigateAction(config, kingdomTwoCrowns.name));
     obsLayouts.push(kingdomTwoCrowns);
 
-    kingdomTwoCrowns.addAction(0, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Layout'}));
     kingdomTwoCrowns.addAction(1, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Arisu/Syra'}));
     kingdomTwoCrowns.addAction(2, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Arisu'}));
     kingdomTwoCrowns.addAction(3, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Syra'}));
 
+    const regular = new Layout('Regular');
+    rootLayout.addAction(0, new NavigateAction(config, regular.name));
+    obsLayouts.push(regular);
+
+    regular.addAction(1, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Main window'}));
+
     for (const obsLayout of obsLayouts) {
+        obsLayout.addAction(0, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Layout'}));
         obsLayout.addAction(7, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Start'}));
         obsLayout.addAction(8, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'Pause'}));
         obsLayout.addAction(9, new OBSAction(config, 'SetCurrentScene', {'scene-name': 'End'}));
