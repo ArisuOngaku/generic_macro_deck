@@ -1,6 +1,6 @@
 import * as child_process from "child_process";
 import * as util from 'util';
-import {app, BrowserWindow, Menu, Tray} from "electron";
+import {app, Menu, Tray} from "electron";
 import KeyboardChoiceUI from './ui/KeyboardChoiceUI';
 import {detectKeyboard, listen} from './KeyboardUtils';
 import {configDirectory} from "./config/Config";
@@ -15,7 +15,7 @@ import NavigateAction from "./NavigateAction";
 import OBSAction from "./obs/OBSAction";
 import ToggleOSDAction from "./ToggleOSDAction";
 import path from "path";
-import {resourcesDirectory} from "./ui/UI";
+import {openUIs, resourcesDirectory} from "./ui/UI";
 
 const exec = util.promisify(child_process.exec);
 
@@ -33,7 +33,9 @@ async function run() {
         {label: 'Generic Macro Deck', type: 'normal', enabled: false},
         {
             label: 'Open GMD', type: 'normal', click: () => {
-                BrowserWindow.getAllWindows().forEach(w => w.show());
+                for (const openUI of openUIs) {
+                    openUI.show();
+                }
             }
         },
         {type: 'separator'},
@@ -42,7 +44,13 @@ async function run() {
     tray.setContextMenu(menu);
 
     tray.on('click', event => {
-        BrowserWindow.getAllWindows().forEach(w => w.isFocused() ? w.hide() : w.show());
+        for (const openUI of openUIs) {
+            if (openUI.window.isFocused()) {
+                openUI.hide();
+            } else {
+                openUI.show();
+            }
+        }
     });
 
     // Register action types
@@ -98,6 +106,8 @@ async function run() {
         }
     }
     console.log('Keyboards successfully disabled.');
+
+    configurations[selectedConfiguration].keyboardUI.open();
 
     try {
         await listen(keyboards.consumer.eventId, () => quit, async event => {

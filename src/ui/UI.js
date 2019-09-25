@@ -3,6 +3,7 @@ import ejs from "ejs";
 import path from "path";
 
 export const resourcesDirectory = path.resolve(__dirname, '../../resources');
+export const openUIs = [];
 const defaultLayout = 'layout';
 const extension = '.ejs';
 
@@ -18,30 +19,41 @@ export default class UI {
         }
     }
 
+    open() {
+        if (openUIs.indexOf(this) < 0) openUIs.push(this);
+    }
+
     show() {
-        if (this.window != null) {
-            this.window.show();
-        } else {
-            const title = this.title;
-            this.window = new BrowserWindow({
-                width: this.width,
-                height: this.height,
-                title: title,
-                webPreferences: {
-                    nodeIntegration: true,
-                },
-                alwaysOnTop: true,
-                modal: true,
-                type: 'dialog',
-                autoHideMenuBar: true,
-                frame: this.decorated,
-                transparent: !this.decorated,
-                titleBarStyle: this.decorated ? 'default' : 'hidden'
-            });
-            this.window.webContents.openDevTools({
-                mode: 'detach',
-            });
+        if (this.window == null) {
+            this.createWindow();
         }
+
+        this.open();
+
+        this.window.show();
+        this.window.webContents.openDevTools({
+            mode: 'detach',
+        });
+    }
+
+    createWindow() {
+        const title = this.title;
+        this.window = new BrowserWindow({
+            width: this.width,
+            height: this.height,
+            title: title,
+            webPreferences: {
+                nodeIntegration: true,
+            },
+            alwaysOnTop: true,
+            modal: true,
+            type: 'dialog',
+            autoHideMenuBar: true,
+            frame: this.decorated,
+            transparent: !this.decorated,
+            titleBarStyle: this.decorated ? 'default' : 'hidden',
+            show: false
+        });
     }
 
     hide() {
@@ -49,6 +61,10 @@ export default class UI {
     }
 
     close() {
+        const index = openUIs.indexOf(this);
+        if (index >= 0) {
+            openUIs.splice(index, 1);
+        }
         this.window.destroy();
         this.window = null;
     }

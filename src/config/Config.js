@@ -22,6 +22,7 @@ export default class Config {
         this.confirmQuit = false;
         this.obsController = obsController;
         this.keyboardUI = new KeyboardUI(this);
+        this.keyboardUI.createWindow();
 
         if (data != null) {
             this.deserialize(data);
