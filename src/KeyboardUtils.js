@@ -20,7 +20,7 @@ export async function detectKeyboard(keyboardName) {
     let entries = devices.split('\n\n');
     let keyboards = [];
     for (const entry of entries) {
-        if (entry.indexOf(keyboardName) >= 0 && entry.indexOf('kbd event') >= 0 && entry.match('Consumer Control|System Control') == null) {
+        if (entry.indexOf(keyboardName) >= 0 && entry.indexOf('kbd') >= 0 && entry.match('Consumer Control|System Control') == null) {
             let keyboard = {
                 name: entry.match(/N: Name="(.+)"/)[1],
                 eventId: entry.match(/event([0-9]+)/)[1],
