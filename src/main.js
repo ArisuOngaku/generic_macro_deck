@@ -23,7 +23,28 @@ const exec = util.promisify(child_process.exec);
 console.log('GMD start');
 let quit = false;
 let tray = null;
+let keyboardFile = null;
+let keyboards = null;
 
+function exit(code) {
+    quit = true;
+    if (keyboardFile != null) {
+        fs.closeSync(keyboardFile);
+        keyboardFile = null;
+    }
+
+    if(keyboards != null) {
+        for (let keyboard of keyboards) {
+            console.log('Re-enabling keyboard', keyboard.xinputId);
+            exec('xinput --enable ' + keyboard.xinputId)
+                .catch(console.error);
+        }
+    }
+
+    console.log('GMD end');
+
+    app.exit(code);
+}
 
 async function run() {
     // System tray
@@ -39,11 +60,11 @@ async function run() {
             }
         },
         {type: 'separator'},
-        {label: 'Quit', type: 'normal', role: 'quit', click: () => app.exit(0)},
+        {label: 'Quit', type: 'normal', click: () => exit(0)},
     ]);
     tray.setContextMenu(menu);
 
-    tray.on('click', event => {
+    tray.on('click', () => {
         for (const openUI of openUIs) {
             if (openUI.window.isFocused()) {
                 openUI.hide();
@@ -80,13 +101,13 @@ async function run() {
 
     for (const profile of fs.readdirSync(profileDirectory)) {
         console.log('Loading profile file ' + profile);
-        profiles.push(new Profile(() => quit = true, obs, profile.split('.')[0], JSON.parse(fs.readFileSync(path.resolve(profileDirectory, profile)))));
+        profiles.push(new Profile(() => exit(0), obs, profile.split('.')[0], JSON.parse(fs.readFileSync(path.resolve(profileDirectory, profile)))));
     }
 
     let newKeyboard = false;
     if (profiles.length === 0) {
         newKeyboard = true;
-        let profile = makeDefaultProfile(() => quit = true, obs);
+        let profile = makeDefaultProfile(() => exit(0), obs);
         profiles.push(profile);
         profile.save();
         selectedProfile = profile;
@@ -111,8 +132,7 @@ async function run() {
 
 
     // Keyboard choice
-    let keyboardName;
-    let keyboards;
+    let keyboardName = null;
     let firstAttempt = true;
     do {
         if (!firstAttempt) {
@@ -147,38 +167,24 @@ async function run() {
     selectedProfile.save();
     selectedProfile.load();
 
-    try {
-        await listen(keyboards.consumer.eventId, () => quit, async event => {
-            let keyCode = event.code;
-            console.log('--------------------------------------------------------------------');
-            let key = selectedProfile.getKey(keyCode);
-            console.log('Key ', keyCode, '\tVirtual', key);
-            selectedProfile.onKeyPress(key);
-            let action = selectedProfile.getAction(key);
-            if (action == null || action.constructor !== QuitAction) selectedProfile.resetQuit();
-            if (action != null) {
-                console.log('Executing action of type', action.constructor.name);
-                try {
-                    let result = await action.execute();
-                    console.log('Success: ', result);
-                } catch (e) {
-                    console.error('Fail: ', e);
-                }
+    keyboardFile = await listen(keyboards.consumer.eventId, () => quit, async event => {
+        let keyCode = event.code;
+        console.log('--------------------------------------------------------------------');
+        let key = selectedProfile.getKey(keyCode);-
+        console.log('Key ', keyCode, '\tVirtual', key);
+        selectedProfile.onKeyPress(key);
+        let action = selectedProfile.getAction(key);
+        if (action == null || action.constructor !== QuitAction) selectedProfile.resetQuit();
+        if (action != null) {
+            console.log('Executing action of type', action.constructor.name);
+            try {
+                let result = await action.execute();
+                console.log('Success: ', result);
+            } catch (e) {
+                console.error('Fail: ', e);
             }
-        });
-    } catch (e) {
-        console.error(e);
-    }
-
-    for (let keyboard of keyboards) {
-        console.log('Re-enabling keyboard', keyboard.xinputId);
-        let disablerProcess = await exec('xinput --enable ' + keyboard.xinputId);
-        if (disablerProcess.stderr) {
-            throw disablerProcess.stderr;
         }
-    }
-
-    console.log('GMD end');
+    });
 }
 
 app.on('window-all-closed', e => e.preventDefault());
@@ -186,9 +192,8 @@ app.on('window-all-closed', e => e.preventDefault());
 app.on('ready', async () => {
     try {
         await run();
-        app.exit(0);
     } catch (e) {
         console.error(e);
-        app.exit(1);
+        exit(1);
     }
 });

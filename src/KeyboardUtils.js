@@ -72,8 +72,18 @@ export async function listen(inputId, quitSupplier, eventListener) {
     if (typeof eventListener !== 'function') throw new Error('eventListener must be a function');
     console.log('Listening to input events from /dev/input/event' + inputId);
 
-    let file = fs.openSync('/dev/input/event' + inputId, 'r');
+    let fd = await fs.openSync('/dev/input/event' + inputId, 'r');
+    (async () => {
+        try {
+            await listenToKeyboard(fd, quitSupplier, eventListener);
+        } catch (e) {
+            console.error(e);
+        }
+    })();
+    return fd;
+}
 
+async function listenToKeyboard(file, quitSupplier, eventListener) {
     while (!quitSupplier()) {
         let data = Buffer.alloc(24);
         let bytesRead = await new Promise(resolve => {
